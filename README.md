@@ -52,5 +52,6 @@ usage: naturalExperiments --infile=INFILE --treefile=TREEFILE [<flags>]
 	--malignant				Examine malignancy rates (examines neoplasia rate by default).
 	--max=10.0				The maximum divergeance allowed to compare species.
 	--min=0.2				The minimum difference in cancer rates to report results.
+	--records=50			The minimum number of records for a species required for examination.
 	-o, --outfile="nil"		Name of output file.
 	-t, --treefile=TREEFILE	Path to newick tree file.

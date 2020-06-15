@@ -18,20 +18,23 @@ var (
 	malignant = kingpin.Flag("malignant", "Examine malignancy rates (examines neoplasia rate by default).").Default("false").Bool()
 	max       = kingpin.Flag("max", "The maximum divergeance allowed to compare species.").Default("10.0").Float()
 	min       = kingpin.Flag("min", "The minimum difference in cancer rates to report results.").Default("0.2").Float()
+	records   = kingpin.Flag("records", "The minimum number of records for a species required for examination.").Default("50").Int()
 	outfile   = kingpin.Flag("outfile", "Name of output file.").Short('o').Default("nil").String()
 	treefile  = kingpin.Flag("treefile", "Path to newick tree file.").Short('t').Required().String()
 )
 
 type cancerRate struct {
-	name string
-	rate float64
+	name  string
+	rate  float64
+	total int
 }
 
-func newCancerRate(name string, rate float64) *cancerRate {
+func newCancerRate(name string, rate float64, total int) *cancerRate {
 	// Returns filled struct
 	var r cancerRate
 	r.name = strings.Replace(name, " ", "_", 1)
 	r.rate = rate
+	r.total = total
 	return &r
 }
 
@@ -39,6 +42,7 @@ type identifier struct {
 	max     float64
 	min     float64
 	rates   []*cancerRate
+	records int
 	results *dataframe.Dataframe
 	tree    *NewickTree
 }
@@ -48,8 +52,9 @@ func newIdentifier() *identifier {
 	id := new(identifier)
 	id.max = *max
 	id.min = *min
+	id.records = *records
 	id.results, _ = dataframe.NewDataFrame(-1)
-	id.results.SetHeader([]string{"SpeciesA", "RateA", "SpeciesB", "RateB", "Difference", "Divergence(MYA)"})
+	id.results.SetHeader([]string{"SpeciesA", "RateA", "TotalA", "SpeciesB", "RateB", "TotalB", "Difference", "Divergence(MYA)"})
 	fmt.Println("\n\tReading tree file...")
 	id.tree = FromFile(*treefile)
 	id.setRates(*infile, *malignant)
@@ -66,9 +71,14 @@ func (id *identifier) setRates(infile string, mal bool) {
 	df, err := dataframe.FromFile(infile, -1)
 	if err == nil {
 		for idx := range df.Rows {
+			var total int
 			if species, er := df.GetCell(idx, "Species"); er == nil {
 				if rate, e := df.GetCellFloat(idx, r); e == nil {
-					id.rates = append(id.rates, newCancerRate(species, rate))
+					if total, e = df.GetCellInt(idx, "TotalRecords"); e == nil {
+						if total >= id.records {
+							id.rates = append(id.rates, newCancerRate(species, rate, total))
+						}
+					}
 				}
 			}
 		}
@@ -92,7 +102,7 @@ func (id *identifier) checkDistance(a, b *cancerRate) {
 	// Stores results if distance is less than max
 	d := id.tree.Divergence(a.name, b.name)
 	if d > 0.0 && d <= id.max {
-		row := []string{a.name, id.formatFloat(a.rate), b.name, id.formatFloat(b.rate), id.formatFloat(math.Abs(a.rate - b.rate)), id.formatFloat(d)}
+		row := []string{a.name, id.formatFloat(a.rate), strconv.Itoa(a.total), b.name, id.formatFloat(b.rate), strconv.Itoa(b.total), id.formatFloat(math.Abs(a.rate - b.rate)), id.formatFloat(d)}
 		id.results.AddRow(row)
 	}
 }
