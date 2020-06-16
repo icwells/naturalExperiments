@@ -3,7 +3,6 @@
 package main
 
 import (
-	//"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -13,10 +12,11 @@ import (
 type NewickTree struct {
 	idx   int
 	nodes map[string]*Node
+	// Root is the parent node of the tree. It is the only node with no ancestor.
 	Root  *Node
 }
 
-// NewTree returns a Newick tree struct from the given string
+// NewTree returns a Newick tree struct from the given string.
 func NewTree(tree string) *NewickTree {
 	t := new(NewickTree)
 	t.nodes = make(map[string]*Node)

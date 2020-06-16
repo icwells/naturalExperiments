@@ -9,9 +9,13 @@ import (
 
 // Node stores data for each node of the tree.
 type Node struct {
+	// Ancestor is the node's immediate parent node.
 	Ancestor    *Node
+	// Descendents stores all of the node's child nodes.
 	Descendants []*Node
+	// Length stores the node's distance from the input newick tree.
 	Length      float64
+	// Name is the name of the node taken from the newick tree.
 	Name        string
 }
 
@@ -51,10 +55,10 @@ func (n *Node) IsLeaf() bool {
 	ch <- n
 	go func() {
 		for _, i := range n.Descendants {
-			for j := range i.Walk() {
-				ch <- j
-				if j.IsLeaf() {
-					break
+			if len(i.Descendants) > 0 {
+				ch <- i.Descendants[0]
+				for j := range i.Walk() {
+					ch <- j
 				}
 			}
 		}
